@@ -1,32 +1,50 @@
 grammar Osinfo;
 
-parse : line* EOF ;
+parse : line* EOF;
 
-line :  COMMENT | EOL | os_record ;
+line : COMMENT
+     | osRecord
+     | NEWLINE ;
 
-COMMENT : '#' .*? EOL;
-os_record : 'os' DOT UNIQUE_OS_NAME DOT attribute DOT key_value EOL;
-attribute : ID
-          | NAME
+COMMENT :  '#' ~('\r' | '\n')* NEWLINE;
+osRecord : OS DOT UNIQUE_OS_ID DOT attribute DOT pair NEWLINE;
+OS : 'os' ;
+
+attribute : 'id'
+          | 'name'
           | devices
           | resources
-          | plainAttributes;
+          | general;
 
-devices: 'devices' DOT  devices_types ;
-devices_types : 'audio' | 'cdInterface' | 'disk' | 'diskInterfaces' | 'display' | 'maxPciDevices' | 'network' | 'watchdog' ;
-resources : 'resources' DOT ('minimum' | 'maximum' ) DOT resource_type ;
+devices: 'devices' DOT  device_typs ;
+device_typs : 'audio'
+            | 'cdInterface'
+            | 'disk'
+            | 'diskInterfaces'
+            | 'display'
+            | 'maxPciDevices'
+            | 'network'
+            | 'watchdog' ;
+
+resources : 'resources' DOT ('minimum' | 'maximum' ) DOT resource_type;
 resource_type : RAM | DISK_SIZE | NUMBER_OF_CPUS ;
-plainAttributes: 'bus' | 'cpuArchitecture' | 'derivedFrom' | 'description' | 'family' | 'isTimezoneTypeInteger' | 'name' | 'productKey' | 'resources' | 'sysprepPath' ;
-key_value : 'value' (DOT VERSION)? '=' VALUE ;
+general: 'bus'
+       | 'cpuArchitecture'
+       | 'derivedFrom'
+       | 'description'
+       | 'family'
+       | 'isTimezoneTypeInteger'
+       | 'productKey'
+       | 'resources'
+       | 'sysprepPath' ;
 
-EOL: '\n' ;
-DOT : [\.] ;
-UNIQUE_OS_NAME: [a-z0-9_]+ ;
-INT : [0-9]+ ;
+pair : 'value' (DOT VERSION)? WS* '=' WS* VALUE ;
+
+DOT : '.' ;
+UNIQUE_OS_ID: [a-z0-9]+ ;
+INT : [0-9] ;
 VERSION : [3][\.][0-5] ;
-VALUE : (.)+?  ;
-ID : 'id' ;
-NAME : 'name' ;
+VALUE :~('\r'|'\n')+ ;
 
 DERIVED_FROM : 'derivedFrom';
 CPU_ARCHITECTURE : 'cpuArchitecture';
@@ -46,3 +64,6 @@ WATCHDOG : 'watchdog';
 RAM: 'ram';
 DISK_SIZE: 'diskSize';
 NUMBER_OF_CPUS: 'numberOsCpus';
+
+NEWLINE : '\r'? '\n' | '\r' ;
+WS : [ \t\r\n]+ -> skip ;
