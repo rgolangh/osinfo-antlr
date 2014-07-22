@@ -21,7 +21,7 @@ public class OsinfoParsingListener extends OsinfoBaseListener {
     public static void main(String... args) throws IOException {
         ParseTreeWalker walker = new ParseTreeWalker();
         OsinfoParsingListener loader = new OsinfoParsingListener();
-        OsinfoLexer osinfoLexer = new OsinfoLexer(new ANTLRFileStream("/tmp/osinfo.properties"));
+        OsinfoLexer osinfoLexer = new OsinfoLexer(new ANTLRFileStream("src/main/resources/osinfo.properties"));
         OsinfoParser osinfoParser = new OsinfoParser(new BufferedTokenStream(osinfoLexer));
 
         walker.walk(loader, osinfoParser.parse());
