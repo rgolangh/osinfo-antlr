@@ -1,69 +1,205 @@
 grammar Osinfo;
 
-parse : line* EOF;
 
-line : COMMENT
-     | osRecord
-     | NEWLINE ;
+parse
+    :
+    ((osRecord | compatibilityRecord | comment) (EOL|EOF))*
+    ;
 
-COMMENT :  '#' ~('\r' | '\n')* NEWLINE;
-osRecord : OS DOT UNIQUE_OS_ID DOT attribute DOT pair NEWLINE;
+
+osRecord
+    :
+    'os' DOT OS_UNIQUE_NAME '.' attribute
+    ;
+
+compatibilityRecord
+    :
+    'backwardCompatibility' '.' OS_UNIQUE_NAME WS* EQUALS WS* INT
+    ;
+
+comment
+    :
+    LineComment
+    ;
+
+attribute
+    :
+    ID intValue
+    | NAME stringValue
+    | DESCRIPTION stringValue
+    | 'derivedFrom' stringValue
+    | 'family' stringValue
+    | 'cpuArchitecture' archValue
+    | 'bus' busValue
+    | 'sysprepPath' stringValue
+    | 'productKey' stringValue
+    | 'isTimezoneTypeInteger' booleanValue
+    | resources
+    | devices
+    ;
+
+resources
+    :
+    'resources'
+    ( DOT 'minimum' DOT ('ram'|'disksize'|'numberOfCpus') intValue
+    | DOT 'maximum' DOT ('ram'|'disksize'|'numberOfCpus') intValue
+    )+
+    ;
+
+devices
+    :
+    'devices'
+    ( DOT DISPLAY_PROTOCOLS displayValue
+    | DOT 'watchdog.models' watchdogValue
+    | DOT 'network' networkValue
+    | DOT 'network.hotplugSupport' booleanValue
+    | DOT 'disk.hotpluggableInterfaces' hardwareInterfacesValue
+    | DOT 'balloon.enabled' booleanValue
+    | DOT 'audio' audioValue
+    | DOT 'cdInterface' cdInterfaceValue
+    | DOT 'diskInterfaces' hardwareInterfacesValue
+    | DOT 'maxPciDevices' intValue
+    )
+    ;
+
+intValue
+    :
+    valueSpecifier (INT | bus_width )
+    ;
+
+stringValue
+    :
+    valueSpecifier rest_of_line
+    ;
+
+rest_of_line
+    :
+    ~EOL*
+    ;
+
+booleanValue
+    :
+    valueSpecifier ('true' | 'false')
+    ;
+
+archValue
+    :
+    valueSpecifier ('x86_64' | 'ppc64')
+    ;
+
+busValue
+    :
+    valueSpecifier bus_width
+    ;
+
+displayValue
+    :
+    valueSpecifier DISPLAY_PROTOCOLS_TYPE(',' WS* DISPLAY_PROTOCOLS_TYPE )*
+    ;
+
+
+watchdogValue
+    :
+    valueSpecifier ('i6300esb')
+    ;
+
+networkValue
+    :
+    valueSpecifier NETWORK_DEVICE_TYPE (',' WS* NETWORK_DEVICE_TYPE)*
+    ;
+
+
+audioValue
+    :
+    valueSpecifier ('ich6' | 'ac97')
+    ;
+
+cdInterfaceValue
+    :
+    valueSpecifier ('ide' | 'scsi')
+    ;
+
+
+hardwareInterfacesValue
+    :
+    valueSpecifier HARDWARE_INTERFACE_TYPE* (',' WS* HARDWARE_INTERFACE_TYPE)*
+    ;
+
+valueSpecifier
+    :
+     VALUE (DOT VERSION)* WS* EQUALS WS*
+    ;
+
+
+//keywords
 OS : 'os' ;
+BACKWARDCOMPATIBILITY : 'backwardCompatibility' ;
+ID : 'id' ;
+NAME : 'name' ;
+DESCRIPTION : 'description' ;
+DERIVEDFROM : 'derivedFrom' ;
+FAMILY : 'family' ;
+CPUARCHITECTURE : 'cpuArchitecture' ;
+BUS : 'bus' ;
+RESOURCES : 'resources' ;
+MINIMUM : 'minimum' ;
+RAM : 'ram' ;
+DISKSIZE : 'disksize' ;
+NUMBEROFCPUS : 'numberOfCpus' ;
+MAXIMUM : 'maximum' ;
+DEVICES : 'devices' ;
+DISPLAY_PROTOCOLS : 'display.protocols' ;
+WATCHDOG_MODELS : 'watchdog.models' ;
+NETWORK : 'network' ;
+NETWORK_HOTPLUGSUPPORT : 'network.hotplugSupport' ;
+DISK_HOTPLUGGABLEINTERFACES : 'disk.hotpluggableInterfaces' ;
+BALLOON_ENABLED : 'balloon.enabled' ;
+AUDIO : 'audio' ;
+CDINTERFACE : 'cdInterface' ;
+DISKINTERFACES : 'diskInterfaces' ;
+MAXPCIDEVICES : 'maxPciDevices' ;
+TRUE : 'true' ;
+FALSE : 'false' ;
+X86_64 : 'x86_64' ;
+PPC64 : 'ppc64' ;
+COMMA : ',' ;
+I6300ESB : 'i6300esb' ;
+ICH6 : 'ich6' ;
+AC97 : 'ac97' ;
+IDE : 'ide' ;
+SCSI : 'scsi' ;
 
-attribute : 'id'
-          | 'name'
-          | devices
-          | resources
-          | general;
+DISPLAY_PROTOCOLS_TYPE
+    :
+    'vnc/cirrus' | 'qxl/qxl' | 'vnc/vga'
+    ;
 
-devices: 'devices' DOT  device_typs ;
-device_typs : 'audio'
-            | 'cdInterface'
-            | 'disk'
-            | 'diskInterfaces'
-            | 'display'
-            | 'maxPciDevices'
-            | 'network'
-            | 'watchdog' ;
+NETWORK_DEVICE_TYPE
+    :
+    'rtl8139_pv' | 'rtl8139' | 'e1000' | 'pv' | 'spaprVlan'
+    ;
 
-resources : 'resources' DOT ('minimum' | 'maximum' ) DOT resource_type;
-resource_type : RAM | DISK_SIZE | NUMBER_OF_CPUS ;
-general: 'bus'
-       | 'cpuArchitecture'
-       | 'derivedFrom'
-       | 'description'
-       | 'family'
-       | 'isTimezoneTypeInteger'
-       | 'productKey'
-       | 'resources'
-       | 'sysprepPath' ;
+HARDWARE_INTERFACE_TYPE
+    :
+    'IDE' | 'VirtIO' | 'VirtIO_SCSI' | 'SPAPR_VSCSI'
+    ;
 
-pair : 'value' (DOT VERSION)? WS* '=' WS* VALUE ;
 
-DOT : '.' ;
-UNIQUE_OS_ID: [a-z0-9]+ ;
-INT : [0-9] ;
-VERSION : [3][\.][0-5] ;
-VALUE :~('\r'|'\n')+ ;
+INT : DIGIT+ ;
+bus_width: '32' | '64' ;
 
-DERIVED_FROM : 'derivedFrom';
-CPU_ARCHITECTURE : 'cpuArchitecture';
-BUS : 'bus';
-SYSPREP_PATH : 'sysprepPath';
-PRODUCT_KEY : 'productKey';
+fragment DIGIT : [0-9] ;
+fragment CHAR : [a-zA-Z0-9_] ;
+DOT: '.' ;
+VALUE: '.value' ;
+VERSION: '3' '.' '0'..'5' ;
+OS_UNIQUE_NAME : CHAR+ ;
+EQUALS : '=' ;
+WS : [ \t] ;
+TEXT: [a-zA-Z0-9\\\/${}]+ ;
+LineComment
+    :
+    '#' ~[\r\n]*
+    ;
 
-AUDIO : 'audio';
-CD : 'cdInterface';
-DISK : 'disk';
-DISK_INTERFACE : 'diskInterfaces';
-DISPLAY : 'display';
-MAX_PCI_DEVICES : 'maxPciDevices';
-NETWORK : 'network';
-WATCHDOG : 'watchdog';
-
-RAM: 'ram';
-DISK_SIZE: 'diskSize';
-NUMBER_OF_CPUS: 'numberOsCpus';
-
-NEWLINE : '\r'? '\n' | '\r' ;
-WS : [ \t\r\n]+ -> skip ;
+EOL : [\r\n]+ ;
